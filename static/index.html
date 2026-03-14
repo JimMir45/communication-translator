@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>职能沟通翻译助手</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked@14/marked.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --primary-light: #eef2ff;
+      --success: #059669;
+      --danger: #dc2626;
+      --warning: #d97706;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-400: #9ca3af;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --gray-900: #111827;
+      --radius: 10px;
+      --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -2px rgba(0,0,0,.05);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--gray-50);
+      color: var(--gray-900);
+      min-height: 100vh;
+    }
+
+    /* ── Header ─────────────────────────────────────────── */
+    header {
+      background: #fff;
+      border-bottom: 1px solid var(--gray-200);
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-icon {
+      width: 32px; height: 32px;
+      background: var(--primary);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 16px;
+    }
+    .brand-title { font-size: 16px; font-weight: 600; color: var(--gray-900); }
+    .brand-subtitle { font-size: 12px; color: var(--gray-400); margin-top: 1px; }
+
+    .header-actions { display: flex; gap: 8px; align-items: center; }
+    .btn-icon {
+      width: 36px; height: 36px;
+      border: 1px solid var(--gray-200);
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      transition: background .15s;
+    }
+    .btn-icon:hover { background: var(--gray-100); }
+
+    /* ── Main Layout ─────────────────────────────────────── */
+    main {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px 24px 40px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      min-height: calc(100vh - 56px);
+    }
+    @media (max-width: 768px) {
+      main { grid-template-columns: 1fr; padding: 16px; }
+    }
+
+    /* ── Card ────────────────────────────────────────────── */
+    .card {
+      background: #fff;
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+    }
+    .card-header {
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid var(--gray-100);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gray-600);
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .card-body { padding: 20px; flex: 1; display: flex; flex-direction: column; gap: 16px; }
+
+    /* ── Direction Selector ──────────────────────────────── */
+    .direction-group { display: flex; flex-direction: column; gap: 8px; }
+    .direction-label { font-size: 13px; font-weight: 500; color: var(--gray-700); }
+    .direction-pills {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .pill {
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1.5px solid var(--gray-200);
+      background: #fff;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all .15s;
+      color: var(--gray-700);
+      white-space: nowrap;
+    }
+    .pill:hover { border-color: var(--primary); color: var(--primary); }
+    .pill.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+      font-weight: 500;
+    }
+
+    /* ── Auto-detect button ──────────────────────────────── */
+    .detect-row { display: flex; align-items: center; gap: 10px; }
+    .btn-detect {
+      padding: 6px 14px;
+      border-radius: 6px;
+      border: 1.5px dashed var(--primary);
+      background: var(--primary-light);
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .15s;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .btn-detect:hover { background: #e0e7ff; }
+    .btn-detect:disabled { opacity: .5; cursor: not-allowed; }
+    .detect-result {
+      font-size: 12px;
+      color: var(--gray-600);
+      background: var(--gray-100);
+      padding: 4px 10px;
+      border-radius: 4px;
+      display: none;
+    }
+    .detect-result.visible { display: inline-block; }
+
+    /* ── Textarea ────────────────────────────────────────── */
+    .input-group { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+    .input-group label { font-size: 13px; font-weight: 500; color: var(--gray-700); }
+    textarea {
+      flex: 1;
+      min-height: 220px;
+      padding: 12px 14px;
+      border: 1.5px solid var(--gray-200);
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.6;
+      resize: vertical;
+      outline: none;
+      color: var(--gray-900);
+      transition: border-color .15s;
+      font-family: inherit;
+    }
+    textarea:focus { border-color: var(--primary); }
+    textarea::placeholder { color: var(--gray-400); }
+    .char-count { font-size: 12px; color: var(--gray-400); text-align: right; }
+    .char-count.warn { color: var(--warning); }
+
+    /* ── Translate Button ────────────────────────────────── */
+    .btn-translate {
+      padding: 11px 24px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-translate:hover:not(:disabled) { background: var(--primary-hover); }
+    .btn-translate:disabled { opacity: .6; cursor: not-allowed; }
+
+    /* ── Output Area ─────────────────────────────────────── */
+    .output-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      font-size: 12px;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-weight: 500;
+    }
+    .badge-direction {
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+    .badge-streaming {
+      background: #fef3c7;
+      color: var(--warning);
+      display: none;
+    }
+    .badge-streaming.visible { display: inline-block; }
+    .badge-done { background: #d1fae5; color: var(--success); display: none; }
+    .badge-done.visible { display: inline-block; }
+    .badge-error { background: #fee2e2; color: var(--danger); display: none; }
+    .badge-error.visible { display: inline-block; }
+
+    .output-actions { margin-left: auto; display: flex; gap: 6px; }
+    .btn-sm {
+      padding: 4px 10px;
+      border: 1px solid var(--gray-200);
+      border-radius: 6px;
+      background: #fff;
+      font-size: 12px;
+      cursor: pointer;
+      color: var(--gray-600);
+      transition: all .15s;
+    }
+    .btn-sm:hover { background: var(--gray-100); }
+
+    .output-body {
+      flex: 1;
+      min-height: 300px;
+      padding: 16px;
+      border: 1.5px solid var(--gray-200);
+      border-radius: 8px;
+      overflow-y: auto;
+      background: var(--gray-50);
+    }
+    .output-placeholder {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: var(--gray-400);
+    }
+    .output-placeholder svg { opacity: .4; }
+    .output-placeholder p { font-size: 14px; }
+
+    /* Markdown styles */
+    .md-content h1, .md-content h2, .md-content h3 {
+      margin: 1em 0 .5em;
+      font-weight: 600;
+      color: var(--gray-900);
+    }
+    .md-content h2 { font-size: 15px; border-bottom: 1px solid var(--gray-200); padding-bottom: 6px; }
+    .md-content h3 { font-size: 14px; }
+    .md-content p { font-size: 14px; line-height: 1.7; margin: .5em 0; color: var(--gray-700); }
+    .md-content ul, .md-content ol { padding-left: 20px; margin: .5em 0; }
+    .md-content li { font-size: 14px; line-height: 1.7; color: var(--gray-700); margin: 2px 0; }
+    .md-content strong { color: var(--gray-900); }
+    .md-content code {
+      background: var(--gray-200);
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 13px;
+      font-family: "SF Mono", Menlo, monospace;
+    }
+    .md-content blockquote {
+      border-left: 3px solid var(--primary);
+      padding-left: 12px;
+      margin: .5em 0;
+      color: var(--gray-600);
+    }
+
+    /* Streaming cursor */
+    .cursor {
+      display: inline-block;
+      width: 2px; height: 14px;
+      background: var(--primary);
+      margin-left: 2px;
+      vertical-align: middle;
+      animation: blink .8s step-end infinite;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* Spinner */
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Settings Modal ──────────────────────────────────── */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.4);
+      z-index: 200;
+      display: none;
+      align-items: flex-start;
+      justify-content: flex-end;
+      padding: 64px 24px 0;
+    }
+    .overlay.open { display: flex; }
+
+    .settings-panel {
+      background: #fff;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-lg);
+      width: 400px;
+      max-width: 100%;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .settings-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--gray-900);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .settings-close {
+      background: none;
+      border: none;
+      font-size: 18px;
+      cursor: pointer;
+      color: var(--gray-400);
+      line-height: 1;
+    }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-label { font-size: 13px; font-weight: 500; color: var(--gray-700); }
+    .form-hint { font-size: 12px; color: var(--gray-400); }
+    .form-input {
+      padding: 8px 12px;
+      border: 1.5px solid var(--gray-200);
+      border-radius: 7px;
+      font-size: 13px;
+      outline: none;
+      transition: border-color .15s;
+      font-family: "SF Mono", Menlo, monospace;
+    }
+    .form-input:focus { border-color: var(--primary); }
+
+    .settings-footer { display: flex; gap: 8px; justify-content: flex-end; }
+    .btn-save {
+      padding: 8px 18px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-save:hover { background: var(--primary-hover); }
+    .btn-reset {
+      padding: 8px 14px;
+      background: #fff;
+      color: var(--gray-600);
+      border: 1px solid var(--gray-200);
+      border-radius: 7px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .btn-reset:hover { background: var(--gray-100); }
+
+    .server-config-info {
+      background: var(--gray-50);
+      border: 1px solid var(--gray-200);
+      border-radius: 7px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: var(--gray-600);
+      line-height: 1.6;
+    }
+    .server-config-info strong { color: var(--gray-900); }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--gray-900);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      z-index: 300;
+      transition: transform .25s ease;
+      pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────────────── -->
+<header>
+  <div class="header-brand">
+    <div class="brand-icon">⇄</div>
+    <div>
+      <div class="brand-title">职能沟通翻译助手</div>
+      <div class="brand-subtitle">产品 · 开发 · 运营  跨角色沟通</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="btn-icon" id="settingsBtn" title="模型配置">⚙️</button>
+  </div>
+</header>
+
+<!-- ── Main ───────────────────────────────────────────────── -->
+<main>
+  <!-- Left: Input -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">输入</span>
+    </div>
+    <div class="card-body">
+
+      <!-- Direction selector -->
+      <div class="direction-group">
+        <div class="direction-label">翻译方向</div>
+        <div class="direction-pills" id="directionPills">
+          <button class="pill active" data-direction="pm_to_dev">产品 → 开发</button>
+          <button class="pill" data-direction="dev_to_pm">开发 → 产品</button>
+          <button class="pill" data-direction="to_ops">技术/产品 → 运营管理</button>
+        </div>
+      </div>
+
+      <!-- Auto-detect -->
+      <div class="detect-row">
+        <button class="btn-detect" id="detectBtn">
+          <span id="detectBtnText">✦ 智能识别方向</span>
+        </button>
+        <span class="detect-result" id="detectResult"></span>
+      </div>
+
+      <!-- Textarea -->
+      <div class="input-group">
+        <label for="inputText">输入内容</label>
+        <textarea
+          id="inputText"
+          placeholder="在这里输入需要翻译的内容...
+
+例如（产品视角）：
+我们需要一个智能推荐功能，提升用户停留时长。
+
+例如（开发视角）：
+我们优化了数据库查询，QPS 提升了 30%。"
+        ></textarea>
+        <div class="char-count" id="charCount">0 / 8000</div>
+      </div>
+
+      <!-- Translate button -->
+      <button class="btn-translate" id="translateBtn">
+        <span id="translateBtnContent">开始翻译</span>
+      </button>
+
+    </div>
+  </div>
+
+  <!-- Right: Output -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">翻译结果</span>
+      <div class="output-meta" id="outputMeta">
+        <span class="badge badge-direction" id="directionBadge">产品 → 开发</span>
+        <span class="badge badge-streaming" id="streamingBadge">● 生成中...</span>
+        <span class="badge badge-done" id="doneBadge">✓ 完成</span>
+        <span class="badge badge-error" id="errorBadge">✕ 出错</span>
+        <div class="output-actions">
+          <button class="btn-sm" id="copyBtn" title="复制结果">复制</button>
+          <button class="btn-sm" id="clearBtn" title="清空">清空</button>
+        </div>
+      </div>
+    </div>
+    <div class="card-body" style="padding:16px;">
+      <div class="output-body" id="outputBody">
+        <div class="output-placeholder" id="outputPlaceholder">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M8 9h8M8 13h5M3 20l1.3-3.9C3.17 14.92 3 13.54 3 12 3 7.03 7.03 3 12 3s9 4.03 9 9-4.03 9-9 9c-1.54 0-2.92-.17-4.1-.7L3 20z"/>
+          </svg>
+          <p>选择翻译方向，输入内容，点击「开始翻译」</p>
+        </div>
+        <div class="md-content" id="outputContent" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ── Settings Modal ─────────────────────────────────────── -->
+<div class="overlay" id="overlay">
+  <div class="settings-panel">
+    <div class="settings-title">
+      模型配置
+      <button class="settings-close" id="settingsClose">✕</button>
+    </div>
+
+    <div class="server-config-info" id="serverConfigInfo">
+      加载中...
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Base URL</label>
+      <input class="form-input" id="cfgBaseUrl" type="url" placeholder="留空使用服务器默认值" />
+      <span class="form-hint">留空则使用服务器 .env 中的配置</span>
+    </div>
+    <div class="form-group">
+      <label class="form-label">API Token</label>
+      <input class="form-input" id="cfgToken" type="password" placeholder="留空使用服务器默认值" />
+      <span class="form-hint">留空则使用服务器 .env 中的配置（已配置）</span>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Model</label>
+      <input class="form-input" id="cfgModel" type="text" placeholder="留空使用服务器默认值" />
+      <span class="form-hint">例如：claude-opus-4-6、claude-sonnet-4-5</span>
+    </div>
+
+    <div class="settings-footer">
+      <button class="btn-reset" id="resetConfigBtn">恢复默认</button>
+      <button class="btn-save" id="saveConfigBtn">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── Constants ───────────────────────────────────────────
+  const DIRECTION_LABELS = {
+    pm_to_dev: '产品 → 开发',
+    dev_to_pm: '开发 → 产品',
+    to_ops:    '技术/产品 → 运营管理',
+  };
+
+  // ── State ───────────────────────────────────────────────
+  let currentDirection = 'pm_to_dev';
+  let isTranslating = false;
+  let accumulatedText = '';
+
+  // ── DOM refs ────────────────────────────────────────────
+  const inputText       = document.getElementById('inputText');
+  const charCount       = document.getElementById('charCount');
+  const translateBtn    = document.getElementById('translateBtn');
+  const translateBtnContent = document.getElementById('translateBtnContent');
+  const detectBtn       = document.getElementById('detectBtn');
+  const detectBtnText   = document.getElementById('detectBtnText');
+  const detectResult    = document.getElementById('detectResult');
+  const outputBody      = document.getElementById('outputBody');
+  const outputPlaceholder = document.getElementById('outputPlaceholder');
+  const outputContent   = document.getElementById('outputContent');
+  const directionBadge  = document.getElementById('directionBadge');
+  const streamingBadge  = document.getElementById('streamingBadge');
+  const doneBadge       = document.getElementById('doneBadge');
+  const errorBadge      = document.getElementById('errorBadge');
+  const overlay         = document.getElementById('overlay');
+  const toast           = document.getElementById('toast');
+
+  // ── Helpers ─────────────────────────────────────────────
+  function showToast(msg, duration = 2000) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), duration);
+  }
+
+  function getLLMConfig() {
+    return {
+      base_url: localStorage.getItem('llm_base_url') || '',
+      token:    localStorage.getItem('llm_token')    || '',
+      model:    localStorage.getItem('llm_model')    || '',
+    };
+  }
+
+  function setDirectionUI(direction) {
+    currentDirection = direction;
+    document.querySelectorAll('#directionPills .pill').forEach(p => {
+      p.classList.toggle('active', p.dataset.direction === direction);
+    });
+    directionBadge.textContent = DIRECTION_LABELS[direction] || direction;
+  }
+
+  function setOutputStatus(status) {
+    streamingBadge.classList.toggle('visible', status === 'streaming');
+    doneBadge.classList.toggle('visible', status === 'done');
+    errorBadge.classList.toggle('visible', status === 'error');
+  }
+
+  function renderMarkdown(text) {
+    // Add streaming cursor to raw text before parsing
+    return marked.parse(text);
+  }
+
+  function showOutput(html) {
+    outputPlaceholder.style.display = 'none';
+    outputContent.style.display = 'block';
+    outputContent.innerHTML = html;
+    // Auto-scroll to bottom while streaming
+    outputBody.scrollTop = outputBody.scrollHeight;
+  }
+
+  // ── Direction pills ─────────────────────────────────────
+  document.getElementById('directionPills').addEventListener('click', e => {
+    const pill = e.target.closest('.pill');
+    if (pill && !isTranslating) {
+      setDirectionUI(pill.dataset.direction);
+      detectResult.classList.remove('visible');
+    }
+  });
+
+  // ── Char count ──────────────────────────────────────────
+  inputText.addEventListener('input', () => {
+    const len = inputText.value.length;
+    charCount.textContent = `${len.toLocaleString()} / 8,000`;
+    charCount.classList.toggle('warn', len > 7000);
+  });
+
+  // ── Auto-detect ─────────────────────────────────────────
+  detectBtn.addEventListener('click', async () => {
+    const content = inputText.value.trim();
+    if (!content) { showToast('请先输入内容'); return; }
+
+    detectBtn.disabled = true;
+    detectBtnText.textContent = '识别中...';
+    detectResult.classList.remove('visible');
+
+    try {
+      const res = await fetch('/api/detect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content, llm_config: getLLMConfig() }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || '识别失败');
+      }
+      const data = await res.json();
+      setDirectionUI(data.direction);
+
+      const confidenceMap = { high: '高', medium: '中', low: '低' };
+      detectResult.textContent = `已识别（置信度：${confidenceMap[data.confidence] || data.confidence}）`;
+      detectResult.classList.add('visible');
+      showToast(`已自动设置方向：${DIRECTION_LABELS[data.direction]}`);
+    } catch (err) {
+      showToast(`识别失败：${err.message}`);
+    } finally {
+      detectBtn.disabled = false;
+      detectBtnText.textContent = '✦ 智能识别方向';
+    }
+  });
+
+  // ── Translate ────────────────────────────────────────────
+  translateBtn.addEventListener('click', () => startTranslate());
+
+  // Ctrl/Cmd + Enter shortcut
+  inputText.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') startTranslate();
+  });
+
+  async function startTranslate() {
+    if (isTranslating) return;
+    const content = inputText.value.trim();
+    if (!content) { showToast('请输入需要翻译的内容'); return; }
+
+    isTranslating = true;
+    accumulatedText = '';
+    translateBtn.disabled = true;
+    translateBtnContent.innerHTML = '<div class="spinner"></div> 翻译中...';
+    setDirectionUI(currentDirection);
+    setOutputStatus('streaming');
+    showOutput('<span class="cursor"></span>');
+
+    try {
+      const res = await fetch('/api/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          direction: currentDirection,
+          content,
+          llm_config: getLLMConfig(),
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || '请求失败');
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop(); // keep incomplete line
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          let event;
+          try { event = JSON.parse(line.slice(6)); } catch { continue; }
+
+          if (event.type === 'delta') {
+            accumulatedText += event.text;
+            showOutput(renderMarkdown(accumulatedText) + '<span class="cursor"></span>');
+          } else if (event.type === 'done') {
+            showOutput(renderMarkdown(accumulatedText));
+            setOutputStatus('done');
+          } else if (event.type === 'error') {
+            showOutput(`<p style="color:var(--danger)">⚠️ ${event.message}</p>`);
+            setOutputStatus('error');
+          }
+        }
+      }
+    } catch (err) {
+      showOutput(`<p style="color:var(--danger)">⚠️ ${err.message}</p>`);
+      setOutputStatus('error');
+    } finally {
+      isTranslating = false;
+      translateBtn.disabled = false;
+      translateBtnContent.textContent = '开始翻译';
+      // Ensure cursor is removed if stream ended without 'done'
+      const cursor = outputContent.querySelector('.cursor');
+      if (cursor) cursor.remove();
+    }
+  }
+
+  // ── Copy / Clear ─────────────────────────────────────────
+  document.getElementById('copyBtn').addEventListener('click', () => {
+    if (!accumulatedText) { showToast('没有可复制的内容'); return; }
+    navigator.clipboard.writeText(accumulatedText)
+      .then(() => showToast('已复制到剪贴板'))
+      .catch(() => showToast('复制失败，请手动选择文本'));
+  });
+
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    accumulatedText = '';
+    outputContent.innerHTML = '';
+    outputContent.style.display = 'none';
+    outputPlaceholder.style.display = 'flex';
+    setOutputStatus('');
+    detectResult.classList.remove('visible');
+  });
+
+  // ── Settings ─────────────────────────────────────────────
+  async function openSettings() {
+    overlay.classList.add('open');
+    // Load saved values
+    document.getElementById('cfgBaseUrl').value = localStorage.getItem('llm_base_url') || '';
+    document.getElementById('cfgToken').value   = localStorage.getItem('llm_token')    || '';
+    document.getElementById('cfgModel').value   = localStorage.getItem('llm_model')    || '';
+    // Fetch server defaults to display
+    try {
+      const res = await fetch('/api/config');
+      const cfg = await res.json();
+      document.getElementById('serverConfigInfo').innerHTML =
+        `<strong>服务器默认配置</strong><br>` +
+        `Base URL：${cfg.base_url}<br>` +
+        `Token：${cfg.token_masked || '未配置'}<br>` +
+        `Model：${cfg.model}`;
+    } catch {
+      document.getElementById('serverConfigInfo').textContent = '无法获取服务器配置';
+    }
+  }
+
+  document.getElementById('settingsBtn').addEventListener('click', openSettings);
+  document.getElementById('settingsClose').addEventListener('click', () => overlay.classList.remove('open'));
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+
+  document.getElementById('saveConfigBtn').addEventListener('click', () => {
+    const baseUrl = document.getElementById('cfgBaseUrl').value.trim();
+    const token   = document.getElementById('cfgToken').value.trim();
+    const model   = document.getElementById('cfgModel').value.trim();
+    if (baseUrl) localStorage.setItem('llm_base_url', baseUrl); else localStorage.removeItem('llm_base_url');
+    if (token)   localStorage.setItem('llm_token',    token);   else localStorage.removeItem('llm_token');
+    if (model)   localStorage.setItem('llm_model',    model);   else localStorage.removeItem('llm_model');
+    overlay.classList.remove('open');
+    showToast('配置已保存');
+  });
+
+  document.getElementById('resetConfigBtn').addEventListener('click', () => {
+    localStorage.removeItem('llm_base_url');
+    localStorage.removeItem('llm_token');
+    localStorage.removeItem('llm_model');
+    document.getElementById('cfgBaseUrl').value = '';
+    document.getElementById('cfgToken').value   = '';
+    document.getElementById('cfgModel').value   = '';
+    showToast('已恢复为服务器默认配置');
+  });
+</script>
+</body>
+</html>
