@@ -68,28 +68,40 @@ def resolve_llm_config(req_cfg: LLMConfig) -> tuple[str, str, str]:
     return base_url, token, model
 
 
-def make_client(base_url: str, token: str) -> anthropic.Anthropic:
+def make_sync_client(base_url: str, token: str) -> anthropic.Anthropic:
+    """Sync client — used only for non-streaming endpoints (detect)."""
     if not token:
         raise HTTPException(status_code=400, detail="API token is not configured.")
     return anthropic.Anthropic(api_key=token, base_url=base_url)
 
 
+def make_async_client(base_url: str, token: str) -> anthropic.AsyncAnthropic:
+    """Async client — used for streaming to avoid blocking the event loop."""
+    if not token:
+        raise HTTPException(status_code=400, detail="API token is not configured.")
+    return anthropic.AsyncAnthropic(api_key=token, base_url=base_url)
+
+
 async def stream_anthropic(
-    client: anthropic.Anthropic,
+    client: anthropic.AsyncAnthropic,
     model: str,
     system: str,
     user_message: str,
 ) -> AsyncGenerator[str, None]:
-    """Yield SSE-formatted chunks from Anthropic streaming API."""
+    """Yield SSE-formatted chunks from Anthropic streaming API.
+
+    Must use AsyncAnthropic: the sync client blocks the asyncio event loop
+    during I/O waits, preventing uvicorn from flushing chunks to the browser
+    until the entire response is complete.
+    """
     try:
-        with client.messages.stream(
+        async with client.messages.stream(
             model=model,
             max_tokens=4096,
             system=system,
             messages=[{"role": "user", "content": user_message}],
         ) as stream:
-            for text in stream.text_stream:
-                # SSE format: data: <payload>\n\n
+            async for text in stream.text_stream:
                 payload = json.dumps({"type": "delta", "text": text}, ensure_ascii=False)
                 yield f"data: {payload}\n\n"
 
@@ -144,7 +156,7 @@ def detect_direction(req: DetectRequest):
     Returns direction, confidence, and reason.
     """
     base_url, token, model = resolve_llm_config(req.llm_config)
-    client = make_client(base_url, token)
+    client = make_sync_client(base_url, token)
 
     try:
         response = client.messages.create(
@@ -187,7 +199,7 @@ def translate(req: TranslateRequest):
         raise HTTPException(status_code=400, detail="输入内容不能为空。")
 
     base_url, token, model = resolve_llm_config(req.llm_config)
-    client = make_client(base_url, token)
+    client = make_async_client(base_url, token)
     system, user_message = build_translate_message(req.direction, req.content)
 
     return StreamingResponse(

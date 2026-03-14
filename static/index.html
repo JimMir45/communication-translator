@@ -716,6 +716,13 @@
       const decoder = new TextDecoder();
       let buffer = '';
 
+      // yieldToRenderer：在每批 chunk 处理完后让出事件循环。
+      // 根本原因：reader.read() 在数据已缓冲时以 microtask 方式连续解析，
+      // 渲染引擎只在 macrotask 边界才有机会 paint。setTimeout(0) 创建
+      // macrotask 边界，让浏览器在下次读取前渲染当前 DOM 变更。
+      // 注意：rAF 在 headless/throttled 环境下不可靠，用 setTimeout(0) 替代。
+      const yieldToRenderer = () => new Promise(resolve => setTimeout(resolve, 0));
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -724,6 +731,7 @@
         const lines = buffer.split('\n');
         buffer = lines.pop(); // keep incomplete line
 
+        let hasNewContent = false;
         for (const line of lines) {
           if (!line.startsWith('data: ')) continue;
           let event;
@@ -731,7 +739,7 @@
 
           if (event.type === 'delta') {
             accumulatedText += event.text;
-            showOutput(renderMarkdown(accumulatedText) + '<span class="cursor"></span>');
+            hasNewContent = true;
           } else if (event.type === 'done') {
             showOutput(renderMarkdown(accumulatedText));
             setOutputStatus('done');
@@ -739,6 +747,12 @@
             showOutput(`<p style="color:var(--danger)">⚠️ ${event.message}</p>`);
             setOutputStatus('error');
           }
+        }
+
+        // 每批数据处理后，先渲染当前内容，再让出事件循环给浏览器 paint
+        if (hasNewContent) {
+          showOutput(renderMarkdown(accumulatedText) + '<span class="cursor"></span>');
+          await yieldToRenderer();
         }
       }
     } catch (err) {
